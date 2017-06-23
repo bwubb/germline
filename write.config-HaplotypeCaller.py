@@ -27,11 +27,11 @@ def get_GATK(gatkv):
 	v={'3.4':'/home/bwubb/GenomeAnalysisTK-3.4-46','3.7':'/home/bwubb/software/GenomeAnalysisTK-3.7'}
 	return v[gatkv]
 
-def write_script(sample,bam_out,build,gatkv,lib):
+def write_script(sample,bam_out,build,gatkv,lib,mem):
 	if lib:
 		key=lib.key
 	else:
-		key='BRCA-WES'
+		key=os.path.dirname(os.path.getcwd())
 	out_gvcf=os.path.abspath('data/work/{0}/{0}.{1}.raw.snps.indels.g.vcf'.format(sample.name,key))
 	with open(os.path.abspath('data/config/{0}/haplotype.sh'.format(sample.name)),'wb') as script:
 		script.write('#!/bin/bash\n\n')
@@ -40,7 +40,7 @@ def write_script(sample,bam_out,build,gatkv,lib):
 		script.write('dbsnp="{0}"\n'.format(get_dbsnp(build)))
 		script.write('GATK="{0}"\n\n'.format(get_GATK(gatkv)))
 		#
-		script.write('java -Xmx50g -jar $GATK/GenomeAnalysisTK.jar \\\n')
+		script.write('java -Xmx{0}g -jar $GATK/GenomeAnalysisTK.jar \\\n'.format(mem))
 		script.write(' -R $ref \\\n')
 		script.write(' -T HaplotypeCaller \\\n')
 		script.write(' -I {0} \\\n'.format(sample.bam))
@@ -68,6 +68,7 @@ def get_args():
 	parser.add_argument('--bam-out',action='store_true',default=False,help='Write bam of realignment')
 	parser.add_argument('--build',default='GRCh37',help='What Reference version would you like?')
 	parser.add_argument('--gatkv',default='3.4',help='If you want to change the version of GATK used.')
+	parser.add_argument('-M','--mem',defult=10,type=int,help='How much memory for the java stack. measure in g')
 	return parser.parse_args()
 
 
@@ -91,7 +92,7 @@ def main(argv=None):
 			mkdir_p('data/final/{0}'.format(name))
 			mkdir_p('data/work/{0}'.format(name))
 			sample=Sample(name,os.path.abspath('bam_input/final/{0}/{0}.ready.bam'.format(name)))
-			write_script(sample,args.bam_out,args.build,args.gatkv,lib)
+			write_script(sample,args.bam_out,args.build,args.gatkv,lib,args.mem)
 		else:
 			print 'Could not locate', name
 
