@@ -68,7 +68,7 @@ def get_args():
 	parser.add_argument('--bam-out',action='store_true',default=False,help='Write bam of realignment')
 	parser.add_argument('--build',default='GRCh37',help='What Reference version would you like?')
 	parser.add_argument('--gatkv',default='3.4',help='If you want to change the version of GATK used.')
-	parser.add_argument('-M','--mem',defult=10,type=int,help='How much memory for the java stack. measure in g')
+	parser.add_argument('-M','--mem',default=10,type=int,help='How much memory for the java stack. measure in g')
 	return parser.parse_args()
 
 
