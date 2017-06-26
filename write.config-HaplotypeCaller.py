@@ -72,7 +72,7 @@ def main(argv=None):
 	args=get_args()
 	if args.lib!=None:
 		#load intervals file
-		with open('intervals_available.txt','rb') as file:
+		with open('germline/intervals_available.txt','rb') as file:
 			intv=dict(line.rstrip().split(',') for line in file)
 		if args.lib not in intv:
 			raise
