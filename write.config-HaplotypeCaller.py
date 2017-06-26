@@ -90,9 +90,9 @@ def main(argv=None):
 	for name in samples:
 		bam=False
 		#if args.bam_path:
-		if os.path.isfile('bam_input/final/{0}/{0}.ready.bam'.format(name)):#
+		if os.path.isfile('bam_input/final/{0}/{0}.ready.bam'.format(name)):
 			bam=os.path.abspath('bam_input/final/{0}/{0}.ready.bam'.format(name))
-		elif os.path.isfile('bam_input/final/{0}/{0}-ready.bam'.format(name))
+		elif os.path.isfile('bam_input/final/{0}/{0}-ready.bam'.format(name)):
 			bam=os.path.abspath('bam_input/final/{0}/{0}-ready.bam'.format(name))
 		else:
 			print 'Could not locate', name
