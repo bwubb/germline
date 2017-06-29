@@ -28,7 +28,7 @@ def get_GATK(gatkv):
 	return v[gatkv]
 
 def write_script(sample,bam_out,build,gatkv,lib,mem):
-	out_gvcf=os.path.abspath('data/work/{0}/{0}.{1}.raw.snps.indels.g.vcf'.format(sample.name,lib.key))
+	out_gvcf=os.path.abspath('data/work/{0}/{0}.{1}.g.vcf'.format(sample.name,lib.key))
 	with open(os.path.abspath('data/config/{0}/haplotype.sh'.format(sample.name)),'wb') as script:
 		script.write('#!/bin/bash\n\n')
 		script.write('DATE={0}\n'.format(datetime.date.today().strftime("%Y%m%d")))
@@ -79,6 +79,7 @@ def main(argv=None):
 		lib=Interval(intv[args.lib],args.lib)
 	else:
 		lib=Interval(None,'all-sites')
+	
 	with open(args.infile,'rb') as file:
 		samples=file.read().splitlines()
 	
@@ -89,7 +90,7 @@ def main(argv=None):
 	
 	for name in samples:
 		bam=False
-		#if args.bam_path:
+	
 		if os.path.isfile('bam_input/final/{0}/{0}.ready.bam'.format(name)):
 			bam=os.path.abspath('bam_input/final/{0}/{0}.ready.bam'.format(name))
 		elif os.path.isfile('bam_input/final/{0}/{0}-ready.bam'.format(name)):
