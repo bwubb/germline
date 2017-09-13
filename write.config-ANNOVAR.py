@@ -44,8 +44,8 @@ def write_script(sample,vcf,intervals):
 		script.write(' -sn {0} \\\n'.format(sample))
 		script.write(' -env -ef \\\n')
 		script.write(' -o {0}\n\n'.format(out_vcf))
-		
-		script.write('convert2annovar.pl -format vcf4 -includeinfo {0} | awk -F"\\t" '.format(out_vcf)+"'BEGIN { OFS=FS } { print $1,$2,$3,$4,$5,$11,$12,$13,$14,$15 }' > "+'{0}.avinput\n'.format(out_a))
+		#single mode
+		script.write('convert2annovar.pl -format vcf4 -includeinfo -allsample -withfreq {0} | awk -F"\\t" '.format(out_vcf)+"'BEGIN { OFS=FS } { print $1,$2,$3,$4,$5,$14,$15,$16,$17,$18 }' > "+'{0}.avinput\n'.format(out_a))
 		script.write('table_annovar.pl {0}.avinput $humandb -build hg19 --outfile {0} -protocol refGene,cytoband,gwasCatalog,genomicSuperDups,dbnsfp31a_interpro,dbscsnv11,dbnsfp30a,snp138,snp138NonFlagged,cosmic70,popfreq_all_20150413,exac03nontcga,nci60,clinvar_20160302 -operation g,r,r,r,f,f,f,f,f,f,f,f,f,f -otherinfo -remove\n\n'.format(out_a))
 
 #Ideally I would write this script to be executed directly instead of bash
