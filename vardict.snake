@@ -1,0 +1,26 @@
+
+
+
+with open('samples.list','r') as infile:#sample_list in config, default is samples.list
+    SAMPLES=infile.read().splitlines()
+
+rule all:
+    input:
+        expand("data/work/{sample}/{library}/vardict.vcf.gz",sample=SAMPLES,library=config['library']['key'])
+
+rule VarDictJava:
+    input:
+        tumor="bam_input/final/{sample}/{sample}.ready.bam"
+    output:
+        "data/work/{sample}/{library}/vardict.vcf.gz"
+    params:
+        ref=config['reference']['fasta'],
+        bed=config['library']['bed'],
+        path="$HOME/software/VarDictJava/VarDict",
+        AF_THR=0.01
+    threads:
+        4
+        #threads=cluster_config['VarDictJava']['nCPU']
+    shell:
+        "$HOME/software/VarDictJava/build/install/VarDict/bin/VarDict -th {threads} -G {params.ref} -f {params.AF_THR} -N {wildcards.sample} -b {input} -z -c 1 -S 2 -E 3 -g 4 {params.bed} | {params.path}/teststrandbias.R | {params.path}/var2vcf_valid.pl -N {wildcards.sample} -f {params.AF_THR} | bgzip -c > {output}"
+

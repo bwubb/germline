@@ -1,0 +1,82 @@
+
+
+import csv
+import os
+import datetime
+
+with open('samples.list','r') as file:
+    SAMPLES=file.read().splitlines()
+
+DATE=datetime.date.today().strftime("%Y%m%d")
+PROJECT='BRCA-Germline'
+
+def get_header():
+    header='SampleID ProjectID SeqLibrary VariantCaller Chr Start End Ref Alt GenomicLocation'.split(' ')
+    header+='GenomicRegion_refGene ExonicFunc_refGene Gene_refGene Transcript_refGene Exon_refGene NTChange_refGene AAChange_refGene'.split(' ')
+    header+='dbNSFP_InterPro_domain cytoband gwasCatalog genomicSuperDups_Name genomicSuperDups_Score dbscSNV_ada_score dbscSNV_rf_score'.split(' ')
+    header+='SIFT_score SIFT_pred Polyphen2_HDIV_score Polyphen2_HDIV_pred Polyphen2_HVAR_score Polyphen2_HVAR_pred LRT_score LRT_pred MutationTaster_score MutationTaster_pred MutationAssessor_score MutationAssessor_pred'.split(' ')
+    header+='FATHMM_score FATHMM_pred PROVEAN_score PROVEAN_pred VEST3_score CADD_raw CADD_phred DANN_score fathmm-MKL_coding_score fathmm-MKL_coding_pred MetaSVM_score MetaSVM_pred MetaLR_score MetaLR_pred integrated_fitCons_score integrated_confidence_value GERP++_RS phyloP7way_vertebrate phyloP20way_mammalian phastCons7way_vertebrate phastCons20way_mammalian SiPhy_29way_logOdds'.split(' ')
+    header+='dbSNP dbSNP_NonFlagged dbSNP_ver COSMIC COSMIC_ver PopFreqMax'.split(' ')
+    header+='1000G_ALL 1000G_AFR 1000G_AMR 1000G_EAS 1000G_EUR 1000G_SAS'.split(' ')
+    header+='ExAC_ALL ExAC_AFR ExAC_AMR ExAC_EAS ExAC_FIN ExAC_NFE ExAC_OTH ExAC_SAS'.split(' ')
+    header+='ExAC_nontcga_ALL ExAC_nontcga_AFR ExAC_nontcga_AMR ExAC_nontcga_EAS ExAC_nontcga_FIN ExAC_nontcga_NFE ExAC_nontcga_OTH ExAC_nontcga_SAS'.split(' ')
+    header+='ESP6500siv2_ALL ESP6500siv2_AA ESP6500siv2_EA CG46 NCI-60'.split(' ')
+    header+='ClinVar_CLINSIG ClinVar_CLNDBN ClinVar_CLNACC'.split(' ')
+    header+='Zyg Depth ALT_AlleleDepth ALT_AlleleFrac'.split(' ')
+    return header
+
+rule all:
+    input:
+        "{project}.vardict.hg19_multianno.summary.{date}.tsv".format(project=PROJECT,date=DATE)
+
+#wildcard and dir naming is not unified between scripts
+
+rule convert_vcf2annovar:
+    input:
+        "data/work/{sample}/{library}/vardict.vcf.gz"
+    output:
+        "data/work/{sample}/{library}/vardict.avinput"
+    shell:
+        "convert2annovar.pl -format vcf4 -includeinfo -allsample -withfreq {input} | awk -F\"\t\" 'BEGIN {{ OFS=FS }} {{ print $1,$2,$3,$4,$5,$14,$15,$16,$17,$18 }}' | grep PASS > {output}"
+
+rule table_annovar:
+    input:
+        "data/work/{sample}/{library}/vardict.avinput"
+    params:
+        out="data/work/{sample}/{library}/vardict",
+        humandb="/home/bwubb/humandb",
+        protocol="refGene,cytoband,gwasCatalog,genomicSuperDups,dbnsfp31a_interpro,dbscsnv11,dbnsfp30a,snp138,snp138NonFlagged,cosmic70,popfreq_all_20150413,exac03nontcga,nci60,clinvar_20160302",
+        operation="g,r,r,r,f,f,f,f,f,f,f,f,f,f"
+    output:
+        "data/work/{sample}/{library}/vardict.hg19_multianno.txt"
+    shell:
+        "table_annovar.pl {input} {params.humandb} -build hg19 --outfile {params.out} -protocol {params.protocol} -operation {params.operation} -otherinfo "
+
+rule multianno_summary:
+    input:
+        "data/work/{sample}/{library}/vardict.hg19_multianno.txt"
+    output:
+        "data/final/{sample}/{library}/vardict.hg19_multianno.summary.tsv"
+    params:
+        lib=config['library']['key'],
+        project=PROJECT
+    shell:
+        "python gatk_multianno.py --input_fp {input} --output_fp {output} --SM {wildcards.sample} --PR {params.project} --LB {params.lib} --VC VarDict"
+
+rule summary_all:
+    input:
+        expand("data/final/{sample}/{library}/vardict.hg19_multianno.summary.tsv",sample=SAMPLES,library=config['library']['key'])
+    output:
+        "{project}.vardict.hg19_multianno.summary.{date}.tsv".format(project=PROJECT,date=DATE)
+    params:
+        header=get_header(),
+        date=DATE
+    run:
+        with open(output[0],'w') as out:
+            writer=csv.DictWriter(out,delimiter='\t',fieldnames=params.header)
+            writer.writeheader()
+            for i in input:
+                with open(i,'r') as file:
+                    reader=csv.DictReader(file,delimiter='\t')
+                    for row in reader:
+                        writer.writerow(row)
