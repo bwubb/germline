@@ -62,7 +62,7 @@ rule table_annovar:
     params:
         out="data/work/{sample}/{library}/gatk-haplotype",
         humandb="/home/bwubb/humandb",
-        protocol="refGene,cytoband,gwasCatalog,genomicSuperDups,dbnsfp31a_interpro,dbscsnv11,dbnsfp30a,snp138,snp138NonFlagged,cosmic70,popfreq_all_20150413,exac03nontcga,nci60,clinvar_20160302",
+        protocol="refGene,cytoband,gwasCatalog,genomicSuperDups,dbnsfp31a_interpro,dbscsnv11,dbnsfp33a,snp138,snp138NonFlagged,cosmic70,popfreq_all_20150413,exac03nontcga,nci60,clinvar_20170905",
         operation="g,r,r,r,f,f,f,f,f,f,f,f,f,f"
     output:
         "data/work/{sample}/{library}/gatk-haplotype.hg19_multianno.txt"

@@ -7,17 +7,20 @@ import json
 from pprint import pprint
 from snakemake.utils import read_job_properties
 
-if config.get('bams_list',False):
-    SAMPLES=[]
-    BAMS={}
-    with open(config['bams_list'],'r') as infile:
-        for line in infile:
-            x,y=line.rstrip().split(' ')
-            SAMPLES.append(x)
-            BAMS[x]=y
-else:
-    with open('samples.list','r') as infile:#sample_list in config, default is samples.list
-        SAMPLES=infile.read().splitlines()
+#if config.get('bams_list',False):
+#    SAMPLES=[]
+#    BAMS={}
+#    with open(config['bams_list'],'r') as infile:
+#        for line in infile:
+#            x,y=line.rstrip().split(' ')
+#            SAMPLES.append(x)
+#            BAMS[x]=y
+#else:
+#    with open('samples.list','r') as infile:#sample_list in config, default is samples.list
+#        SAMPLES=infile.read().splitlines()
+
+with open(config.get('project',{}).get('sample_list','samples.list'),'r') as infile:#sample_list in config, default is samples.list
+    SAMPLES=infile.read().splitlines()
 
 def select_output(wilcards):
     if 'Exon' in config['resources']['library']['key']:
