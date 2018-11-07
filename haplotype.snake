@@ -64,6 +64,10 @@ rule MakeInputList:
         with open(output[0],'w') as file:
             file.write('\n'.join(input))
 
+#NEW thing, not an input list
+#GATK4 GenotypeGVCFs takes only a single VCF as input. Run GenomicsDBImport to combine all GVCFs into a single VCF before running GenotypeGVCFs.
+#CombineGVCFs
+
 rule GenotypeGVCFs:
     input:
         "input.list"
