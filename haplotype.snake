@@ -53,7 +53,7 @@ rule HaplotypeCaller:
         intervals=config['resources']['library']['intervals'],
         memory='10240m'
     shell:
-        "java -Xmx{params.memory} -jar $HOME/software/GenomeAnalysisTK-3.7/GenomeAnalysisTK.jar -R {params.reference} -T HaplotypeCaller -I {input} -L {params.intervals} --emitRefConfidence GVCF -bamout {output.bam} -o {output.gvcf}"
+        "java -Xmx{params.memory} -jar $HOME/software/GenomeAnalysisTK-3.7/GenomeAnalysisTK.jar -R {params.reference} -T HaplotypeCaller -I {input} -L {params.intervals} --emitRefConfidence GVCF -bamout {output.bam} -o {output.gvcf} -G Standard -G AS_Standard"
 
 rule MakeInputList:
     input:
