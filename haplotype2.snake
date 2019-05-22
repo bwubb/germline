@@ -1,0 +1,29 @@
+
+import datetime
+import sys
+import os
+
+with open(config['project']['sample_list'],'r') as infile:#sample_list in config, default is samples.list
+    SAMPLES=infile.read().splitlines()
+
+with open(config['project']['bam_list'],'r') as b:
+    BAMS=dict(line.split('\t') for line in b.read().splitlines())
+
+def bam_input(wildcards):
+    f='/home/bwubb/Parvati/bam_data/TCGA_TGCT/'+BAMS[wildcards.sample]
+    return f
+
+rule all_gvcf:
+    input:
+        expand('data/work/{reference}/{sample}/gatk/haplotype.g.vcf.gz',reference=config['reference']['key'],sample=SAMPLES)
+
+rule HaplotypeCaller_GVCF:
+    input:
+        bam_input
+    output:
+        "data/work/{reference}/{sample}/gatk/haplotype.g.vcf.gz"
+    params:
+        reference=config['reference']['fasta'],
+        memory='10240m'
+    shell:
+        "java -Xmx{params.memory} -jar $HOME/software/GenomeAnalysisTK-3.7/GenomeAnalysisTK.jar -R {params.reference} -T HaplotypeCaller -I {input} --emitRefConfidence GVCF -o {output} -G Standard -G AS_Standard"

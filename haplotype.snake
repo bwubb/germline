@@ -1,26 +1,13 @@
 
-
 import datetime
 import sys
 import os
-import json
-from pprint import pprint
-from snakemake.utils import read_job_properties
 
-#if config.get('bams_list',False):
-#    SAMPLES=[]
-#    BAMS={}
-#    with open(config['bams_list'],'r') as infile:
-#        for line in infile:
-#            x,y=line.rstrip().split(' ')
-#            SAMPLES.append(x)
-#            BAMS[x]=y
-#else:
-#    with open('samples.list','r') as infile:#sample_list in config, default is samples.list
-#        SAMPLES=infile.read().splitlines()
-
-with open(config.get('project',{}).get('sample_list','samples.list'),'r') as infile:#sample_list in config, default is samples.list
+with open(config['project']['sample_list'],'r') as infile:#sample_list in config, default is samples.list
     SAMPLES=infile.read().splitlines()
+
+with open(config['project']['bam_list'],'r') as b:
+        BAMS=dict(line.split('\t') for line in b.read().splitlines())
 
 def select_output(wilcards):
     if 'Exon' in config['resources']['library']['key']:
@@ -29,31 +16,28 @@ def select_output(wilcards):
         return "data/work/{name}/{library}/gatk-haplotype.hard-filter_recalibrated.snps.indels.vcf.gz".format(name=config['project']['name'],library=config['resources']['library']['key'])
 
 def bam_input(wildcards):
-    if config.get('bams_list',False):
-        return BAMS[wildcards.sample]
-    else:
-        return "bam_input/final/{sample}/{reference}/{sample}.ready.bam".format(sample=wildcards.sample,reference=config['resources']['reference']['key'])
+    return BAMS[wildcards.sample]
 
 localrules: MakeInputList
 
-rule all:
-    input:
-        select_output
+#rule all:
+#    input:
+#        select_output
 
-rule HaplotypeCaller:
+rule all_gvcf:
+    input:
+        expand('data/work/{reference}/{sample}/gatk/haplotype.g.vcf.gz',reference=config['reference']['key'],sample=SAMPLES)
+
+rule HaplotypeCaller_GVCF:
     input:
         bam_input
-        #"bam_input/final/{sample}/{sample}.ready.bam"
     output:
-        gvcf="data/final/{sample}/{library}/gatk-haplotype.g.vcf.gz",
-        bam="data/final/{sample}/{library}/{sample}.gatk-haplotype.bam"
+        "data/work/{config['reference']['key']}/{sample}/gatk/haplotype.g.vcf.gz"
     params:
-        #dbsnp="/home/bwubb/b37_genomes/dbsnp_137.b37.vcf",
-        reference=config['resources']['reference']['fasta'],
-        intervals=config['resources']['library']['intervals'],
+        reference=config['reference']['fasta'],
         memory='10240m'
     shell:
-        "java -Xmx{params.memory} -jar $HOME/software/GenomeAnalysisTK-3.7/GenomeAnalysisTK.jar -R {params.reference} -T HaplotypeCaller -I {input} -L {params.intervals} --emitRefConfidence GVCF -bamout {output.bam} -o {output.gvcf} -G Standard -G AS_Standard"
+        "java -Xmx{params.memory} -jar $HOME/software/GenomeAnalysisTK-3.7/GenomeAnalysisTK.jar -R {params.reference} -T HaplotypeCaller -I {input} --emitRefConfidence GVCF -o {output} -G Standard -G AS_Standard"
 
 rule MakeInputList:
     input:
