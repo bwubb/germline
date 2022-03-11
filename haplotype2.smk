@@ -11,7 +11,7 @@ def mkdir_p(path):
     except OSError as exc: # Python >2.5
         if exc.errno==errno.EEXIST and os.path.isdir(path):
             pass
-            
+
 
 def bam_input(wildcards):
     return BAMS[wildcards.sample]
