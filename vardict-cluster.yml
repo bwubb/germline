@@ -1,0 +1,11 @@
+'__default__':
+    'M': '12288'
+    'n': '1'
+    'J': '{wildcards.sample}_{rule}'
+    'oo': 'logs/cluster/{wildcards.sample}/{rule}.o'
+    'eo': 'logs/cluster/{wildcards.sample}/{rule}.e'
+    'R': '"span [hosts=1] rusage [mem=12288]"'
+run_unpaired_vardict:
+    'M': '32768'
+    'n': '4'
+    'R': '"span [hosts=1] rusage [mem=32768]"'

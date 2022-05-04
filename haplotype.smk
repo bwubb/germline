@@ -5,6 +5,7 @@ import os
 with open(config.get('project',{}).get('sample_list','samples.list'),'r') as infile:#sample_list in config, default is samples.list
     SAMPLES=infile.read().splitlines()
 
+os.makedirs(f'logs/cluster/{config["project"]["name"]}',exist_ok=True)
 for sample in SAMPLES:
     os.makedirs(f'logs/cluster/{sample}',exist_ok=True)
 
@@ -31,16 +32,16 @@ def chr_gvcf(wildcards):
     return expand("data/work/{reference}/{sample}/gatk/{chr}.g.vcf.gz",sample=SAMPLES,chr=wildcards.chr,reference=wildcards.reference)
 
 def gvcf_input(wildcards):
-    return ' '.join([f"data/work/{wildcards.reference}/{sample}/gatk/{wildcards.chr}.g.vcf.gz" for sample in SAMPLES])
+    return ' '.join([f"-V data/work/{wildcards.reference}/{sample}/gatk/{wildcards.chr}.g.vcf.gz" for sample in SAMPLES])
 
 def chr_func(wildcards):
     return chr_dict[wildcards.chr]
 
 #localrules:
 
-rule all:
+rule byChr:
     input:
-        'data/work/{project}/gatk-haplotype.'
+        expand("data/work/{reference}/{project}/gatk/haplotype.{chr}.vcf.gz",reference=config['reference']['key'],project=config['project']['name'],chr=chr_dict.keys())
 
 rule GATK4_HaplotypeCaller_byChr:
     input:

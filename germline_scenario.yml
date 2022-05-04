@@ -1,0 +1,16 @@
+species:
+  ploidy:
+    male:
+      all: 2
+      X: 1
+      Y: 1
+    female:
+      all: 2
+      X: 2
+      Y: 0
+samples:
+    germline:
+        sex: female
+events:
+  het: "germline:0.5"
+  hom: "germline:1.0"
