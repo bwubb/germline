@@ -16,7 +16,7 @@ def map_Workflow(wildcards):
 
 rule all_manta:
     input:
-        expand("data/work/{lib}/{sample}/manta-wgs/results/variants/candidateSV.vcf.gz",sample=SAMPLES,lib=config['resources']['targets_key'])
+        expand("data/work/{lib}/{sample}/manta-wes/results/variants/candidateSV.vcf.gz",sample=SAMPLES,lib=config['resources']['targets_key'])
 
 #Need better wes vs wgs
 rule write_manta_wgs:
@@ -45,11 +45,12 @@ rule write_manta_wes:
 #Looking for way to merge wes wgs runs.
 rule run_manta:
     input:
-        "{work_dir}/{sample}/manta-wgs/runWorkflow.py"
+        "{work_dir}/{sample}/manta-wes/runWorkflow.py"
+        #map_Workflow
     output:
-        "{work_dir}/{sample}/manta-wgs/results/variants/candidateSmallIndels.vcf.gz",
-        "{work_dir}/{sample}/manta-wgs/results/variants/candidateSV.vcf.gz",
-        "{work_dir}/{sample}/manta-wgs/results/variants/diploidSV.vcf.gz",
+        "{work_dir}/{sample}/manta-wes/results/variants/candidateSmallIndels.vcf.gz",
+        "{work_dir}/{sample}/manta-wes/results/variants/candidateSV.vcf.gz",
+        "{work_dir}/{sample}/manta-wes/results/variants/diploidSV.vcf.gz",
     threads:
         4
     shell:

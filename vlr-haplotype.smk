@@ -16,10 +16,6 @@ with open(config.get('project',{}).get('bam_table','bam.table'),'r') as b:
 
 CHR=[f'chr{x}' for x in range(1,23)]+['chrX']
 
-#remove
-with open('name.table', 'r') as n:
-    NAMES=dict(line.split(' ') for line in n.read().splitlines())
-
 ##PYTHON
 def map_vcf(wildcards):
     V={}
@@ -65,11 +61,9 @@ rule gatk_candidate_tsv_byChr:
         expand("data/work/{{lib}}/{project}/gatk/haplotype.{{chr}}.vcf.gz",project=config['project']['name'])
     output:
         "data/work/{lib}/{sample}/gatk/candidates.{chr}.tsv"
-    params:
-        sample=lambda wildcards: NAMES[wildcards.sample]
     shell:
         """
-        bcftools view -a -s {params.sample} -e 'ALT~\"*\"' {input} | bcftools query -f '%CHROM\t%POS\t.\t%REF\t%ALT\t.\t%FILTER\t.\n' > {output}
+        bcftools view -a -s {wildcards.sample} -e 'ALT~\"*\"' {input} | bcftools query -f '%CHROM\t%POS\t.\t%REF\t%ALT\t.\t%FILTER\t.\n' > {output}
         """
     #removed -i 'FILTER=\"PASS\"' from query
 
@@ -173,11 +167,10 @@ rule varlociraptor_vep:
     input:
         "data/work/{lib}/{sample}/varlociraptor/{scenario}.{caller}.local-fdr.bcf"
     output:
-        vcf="data/work/{lib}/{sample}/varlociraptor/{scenario}.{caller}.local-fdr.vep.vcf.gz",
-        bcf="data/work/{lib}/{sample}/varlociraptor/{scenario}.{caller}.local-fdr.vep.bcf"
+        vcf="data/work/{lib}/{sample}/varlociraptor/{scenario}.{caller}.local-fdr.vep.vcf.gz"
     params:
-        in_vcf=temp('data/work/{lib}/{sample}/varlociraptor/{scenario}.{caller}.local-fdr.vcf'),
-        out_vcf=temp('data/work/{lib}/{sample}/varlociraptor/{scenario}.{caller}.local-fdr.vep.vcf'),
+        in_vcf=temp('data/work/{lib}/{sample}/varlociraptor/{scenario}/gatk/haplotype.local-fdr.vcf'),
+        out_vcf=temp('data/work/{lib}/{sample}/varlociraptor/{scenario}/gatk/haplotype.local-fdr.vep.vcf'),
         assembly=config['reference']['key'],
         fa=config['reference']['fasta'],
         splice_snv=config['resources']['splice_snv'],
@@ -187,13 +180,11 @@ rule varlociraptor_vep:
         revel=config['resources']['revel'],
         loftee='$HOME/.vep/Plugins/loftee',#check
         utr=config['resources']['utr'],
-        ref_fa="data/work/{lib}/{sample}/varlociraptor/reference.{caller}.fa",
-        mut_fa="data/work/{lib}/{sample}/varlociraptor/mutated.{caller}.fa"
+        ref_fa="data/work/{lib}/{sample}/varlociraptor/{scenario}/gatk/reference.fa",
+        mut_fa="data/work/{lib}/{sample}/varlociraptor/{scenario}/gatk/mutated.fa"
     shell:
         """
         bcftools view -O v -o {params.in_vcf} {input}
-
-        #if {{ conda env list | grep 'vep'; }} >/dev/null 2>&1; then source activate vep; fi
 
         vep -i {params.in_vcf} -o {params.out_vcf} \
         --force_overwrite \
@@ -212,15 +203,13 @@ rule varlociraptor_vep:
         --plugin REVEL,{params.revel} \
         --plugin SpliceAI,snv={params.splice_snv},indel={params.splice_indel} \
         --plugin gnomADc,{params.gnomAD} \
-        --plugin LoF,loftee_path:{params.loftee} \
         --plugin UTRannotator,{params.utr} \
         --custom {params.clinvar},ClinVar,vcf,exact,0,CLNSIG,CLNREVSTAT,CLNDN
 
-        bgzip {params.out_vcf} && tabix -fp vcf {output.vcf}
-
-        bcftools view -O b -o {output.bcf} {output.vcf}
-        bcftools index -f {output.bcf}
+        bgzip -c {params.out_vcf} > {output.vcf}
+        tabix -fp vcf {output.vcf}
         """
+#        --plugin LoF,loftee_path:{params.loftee} \
 
 rule varlociraptor_vep_report:
     input:
