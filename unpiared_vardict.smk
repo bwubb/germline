@@ -9,7 +9,7 @@ with open(config.get('project',{}).get('bam_table','bam.table'),'r') as b:
 
 rule all:
     input:
-        expand("data/work/{sample}/{library}/vardict.vcf.gz",sample=SAMPLES,library=config['resources']['targets_key'])
+        expand("data/work/{sample}/{library}/vardict.vep.report.csv",sample=SAMPLES,library=config['resources']['targets_key'])
 
 rule run_unpaired_vardict:
     input:
@@ -26,14 +26,14 @@ rule run_unpaired_vardict:
     shell:
         "$HOME/software/VarDictJava/build/install/VarDict/bin/VarDict -th {threads} -G {params.ref} -f {params.AF_THR} -N {wildcards.sample} -b {input.bam} -z -c 1 -S 2 -E 3 -g 4 {params.bed} | {params.path}/teststrandbias.R | {params.path}/var2vcf_valid.pl -N {wildcards.sample} -f {params.AF_THR} | bgzip -c > {output}"
 
-rule brca1_brca2_vep:
+rule vep:
     input:
-        "data/work/{lib}/{sample}/deepvariant/brca1_brca2.output.vcf.gz"
+        "data/work/{sample}/{library}/vardict.vcf.gz"
     output:
-        vcf="data/work/{lib}/{sample}/deepvariant/brca1_brca2.output.vep.vcf.gz"
+        vcf="data/work/{sample}/{library}/vardict.vep.vcf.gz"
     params:
-        in_vcf=temp('data/work/{lib}/{sample}/deepvariant/brca1_brca2.output.vcf'),
-        out_vcf='data/work/{lib}/{sample}/deepvariant/brca1_brca2.output.vep.vcf',
+        in_vcf=temp('data/work/{sample}/{library}/tmp.vcf'),
+        out_vcf='data/work/{sample}/{library}/vardict.vep.vcf',
         assembly=config['reference']['key'],
         fa=config['reference']['fasta'],
         splice_snv=config['resources']['splice_snv'],
@@ -41,13 +41,18 @@ rule brca1_brca2_vep:
         gnomAD=config['resources']['gnomAD'],
         clinvar=config['resources']['clinvar'],
         revel=config['resources']['revel'],
-        loftee='$HOME/.vep/Plugins/loftee',#check
-        utr=config['resources']['utrannotator']
+        loftee='/home/bwubb/.vep/Plugins/loftee',#check
+        human_ancestor_fa='/home/bwubb/.vep/Plugins/loftee/human_ancestor.fa.gz',
+        conservation_file='/home/bwubb/.vep/Plugins/loftee/loftee.sql',
+        gerp_bigwig='/home/bwubb/.vep/Plugins/loftee/gerp_conservation_scores.homo_sapiens.GRCh38.bw',
+        utr=config['resources']['utrannotator'],
+        alphamissense='/home/bwubb/.vep/alphamissense/AlphaMissense_GRCh38.tsv.gz',
+        mavedb='/home/bwubb/.vep/mavedb/MaveDB_variants.tsv.gz'
     shell:
         """
+        tabix -p vcf {input}
         bcftools view -i '%FILTER=\"PASS\"' {input} | bcftools norm -m-both | bcftools norm -f {params.fa} -O v -o {params.in_vcf}
 
-        #if {{ conda env list | grep 'vep'; }} >/dev/null 2>&1; then source activate vep; fi
 
         vep -i {params.in_vcf} -o {params.out_vcf} \
         --force_overwrite \
@@ -66,19 +71,20 @@ rule brca1_brca2_vep:
         --plugin REVEL,{params.revel} \
         --plugin SpliceAI,snv={params.splice_snv},indel={params.splice_indel} \
         --plugin gnomADc,{params.gnomAD} \
-        --plugin LoF,loftee_path:{params.loftee} \
-        --plugin UTRannotator,{params.utr} \
-        --custom {params.clinvar},ClinVar,vcf,exact,0,CLNSIG,CLNREVSTAT,CLNDN
+        --plugin LoF,loftee_path:{params.loftee},human_ancestor_fa:{params.human_ancestor_fa},conservation_file:{params.conservation_file},gerp_bigwig:{params.gerp_bigwig} \
+        --custom {params.clinvar},ClinVar,vcf,exact,0,CLNSIG,CLNREVSTAT,CLNDN \
+        --plugin AlphaMissense,file={params.alphamissense} \
+        --plugin MaveDB,file={params.mavedb}
 
         bgzip {params.out_vcf} && tabix -fp vcf {output.vcf}
 
         """
 
-rule brca1_brca2_vep_report:
+rule vep_report:
     input:
-        vcf="data/work/{lib}/{sample}/deepvariant/brca1_brca2.output.vep.vcf.gz"
+        vcf="data/work/{sample}/{library}/vardict.vep.vcf.gz"
     output:
-        csv="data/work/{lib}/{sample}/deepvariant/brca1_brca2.output.vep.report.csv"
+        csv="data/work/{sample}/{library}/vardict.vep.report.csv"
     shell:
         """
         python vep_vcf_parser.py -i {input.vcf} -o {output.csv} --mode single,{wildcards.sample} everything
